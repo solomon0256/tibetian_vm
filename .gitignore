@@ -1,0 +1,14 @@
+node_modules/
+.wasp/
+dist/
+build/
+.vscode/
+.env
+.env.*
+.env.server
+*.log
+.DS_Store
+
+# Don't ignore example dotenv files.
+!.env.example
+!.env.*.example
