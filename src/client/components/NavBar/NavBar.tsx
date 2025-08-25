@@ -1,39 +1,53 @@
-import { LogIn, Menu } from 'lucide-react';
-import { Dispatch, SetStateAction, useEffect, useState } from 'react';
-import { Link as ReactRouterLink } from 'react-router-dom';
-import { useAuth } from 'wasp/client/auth';
-import { Link as WaspRouterLink, routes } from 'wasp/client/router';
-import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '../../../components/ui/sheet';
-import { cn } from '../../../lib/utils';
-import { throttleWithTrailingInvocation } from '../../../shared/utils';
-import { UserDropdown } from '../../../user/UserDropdown';
-import { UserMenuItems } from '../../../user/UserMenuItems';
-import { useIsLandingPage } from '../../hooks/useIsLandingPage';
-import logo from '../../static/logo.webp';
-import DarkModeSwitcher from '../DarkModeSwitcher';
-import { Announcement } from './Announcement';
+// src/client/components/NavBar/NavBar.tsx
+import { LogIn, Menu } from 'lucide-react'
+import { Dispatch, SetStateAction, useEffect, useMemo, useState } from 'react'
+import { Link as ReactRouterLink, useLocation } from 'react-router-dom'
+import { useAuth } from 'wasp/client/auth'
+import { Link as WaspRouterLink, routes } from 'wasp/client/router'
+import { Sheet, SheetContent, SheetHeader, SheetTitle, SheetTrigger } from '../../../components/ui/sheet'
+import { cn } from '../../../lib/utils'
+import { throttleWithTrailingInvocation } from '../../../shared/utils'
+import { UserDropdown } from '../../../user/UserDropdown'
+import { UserMenuItems } from '../../../user/UserMenuItems'
+import { useIsLandingPage } from '../../hooks/useIsLandingPage'
+import logo from '../../static/logo.webp'
+import DarkModeSwitcher from '../DarkModeSwitcher'
+import { Announcement } from './Announcement'
 
 export interface NavigationItem {
-  name: string;
-  to: string;
+  name: string
+  to: string
 }
 
+/** Toggle legacy marketing links */
+const SHOW_MARKETING_LINKS = false
+
 export default function NavBar({ navigationItems }: { navigationItems: NavigationItem[] }) {
-  const [isScrolled, setIsScrolled] = useState(false);
-  const isLandingPage = useIsLandingPage();
+  const [isScrolled, setIsScrolled] = useState(false)
+  const isLandingPage = useIsLandingPage()
+  const location = useLocation()
 
   useEffect(() => {
-    const throttledHandler = throttleWithTrailingInvocation(() => {
-      setIsScrolled(window.scrollY > 0);
-    }, 50);
-
-    window.addEventListener('scroll', throttledHandler);
-
+    const throttled = throttleWithTrailingInvocation(() => setIsScrolled(window.scrollY > 0), 50)
+    window.addEventListener('scroll', throttled)
     return () => {
-      window.removeEventListener('scroll', throttledHandler);
-      throttledHandler.cancel();
-    };
-  }, []);
+      window.removeEventListener('scroll', throttled)
+      throttled.cancel()
+    }
+  }, [])
+
+  const pageTitle = useMemo(() => {
+    const p = location.pathname
+    if (p.startsWith('/courses')) return 'Courses'
+    if (p.startsWith('/scenic')) return 'Scenic & History'
+    if (p.startsWith('/account')) return 'Account'
+    if (p.startsWith('/pricing')) return 'Pricing'
+    if (p.startsWith('/checkout')) return 'Checkout'
+    return 'Home'
+  }, [location.pathname])
+
+  const TO_COURSES = routes.CoursesRoute.to as string
+  const TO_SCENIC = routes.ScenicHubRoute.to as string
 
   return (
     <>
@@ -53,44 +67,73 @@ export default function NavBar({ navigationItems }: { navigationItems: Navigatio
             })}
             aria-label='Global'
           >
-            <div className='flex items-center gap-6'>
+            {/* Left: Logo */}
+            <div className='flex items-center gap-4'>
               <WaspRouterLink
-                to={routes.LandingPageRoute.to}
+                to={routes.Root.to}
                 className='flex items-center text-foreground duration-300 ease-in-out hover:text-primary transition-colors'
               >
                 <NavLogo isScrolled={isScrolled} />
                 <span
-                  className={cn('font-semibold leading-6 text-foreground transition-all duration-300', {
-                    'ml-2 text-sm': !isScrolled,
-                    'ml-2 text-xs': isScrolled,
+                  className={cn('ml-2 font-semibold leading-6 text-foreground transition-all duration-300', {
+                    'text-sm': !isScrolled,
+                    'text-xs': isScrolled,
                   })}
                 >
                   Your SaaS
                 </span>
               </WaspRouterLink>
 
-              <ul className='hidden lg:flex items-center gap-6 ml-4'>
-                {renderNavigationItems(navigationItems)}
-              </ul>
+              {SHOW_MARKETING_LINKS && (
+                <ul className='hidden lg:flex items-center gap-6 ml-2'>
+                  {renderNavigationItems(navigationItems)}
+                </ul>
+              )}
             </div>
-            <NavBarMobileMenu isScrolled={isScrolled} navigationItems={navigationItems} />
-            <NavBarDesktopUserDropdown isScrolled={isScrolled} />
+
+            {/* Middle: quick actions + current page title */}
+            <div className='mx-2 hidden lg:flex items-center gap-3'>
+              <ReactRouterLink
+                to={TO_COURSES}
+                className='rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-gray-50'
+              >
+                Go to Courses
+              </ReactRouterLink>
+              <ReactRouterLink
+                to={TO_SCENIC}
+                className='rounded-md border px-3 py-1.5 text-sm font-medium hover:bg-gray-50'
+              >
+                Explore Scenic &amp; History
+              </ReactRouterLink>
+
+              <div className='ml-3 text-sm text-muted-foreground select-none'>{pageTitle}</div>
+            </div>
+
+            {/* Right: theme + user */}
+            <div className='flex items-center gap-3'>
+              <NavBarMobileMenu
+                isScrolled={isScrolled}
+                navigationItems={navigationItems}
+                toCourses={TO_COURSES}
+                toScenic={TO_SCENIC}
+              />
+              <NavBarDesktopUserDropdown isScrolled={isScrolled} />
+            </div>
           </nav>
         </div>
       </header>
     </>
-  );
+  )
 }
 
 function NavBarDesktopUserDropdown({ isScrolled }: { isScrolled: boolean }) {
-  const { data: user, isLoading: isUserLoading } = useAuth();
-
+  const { data: user, isLoading } = useAuth()
   return (
     <div className='hidden lg:flex lg:flex-1 gap-3 justify-end items-center'>
       <ul className='flex justify-center items-center gap-2 sm:gap-4'>
         <DarkModeSwitcher />
       </ul>
-      {isUserLoading ? null : !user ? (
+      {isLoading ? null : !user ? (
         <WaspRouterLink
           to={routes.LoginRoute.to}
           className={cn('font-semibold leading-6 ml-3 transition-all duration-300', {
@@ -99,14 +142,7 @@ function NavBarDesktopUserDropdown({ isScrolled }: { isScrolled: boolean }) {
           })}
         >
           <div className='flex items-center duration-300 ease-in-out text-foreground hover:text-primary transition-colors'>
-            Log in{' '}
-            <LogIn
-              size={isScrolled ? '1rem' : '1.1rem'}
-              className={cn('transition-all duration-300', {
-                'ml-1 mt-[0.1rem]': !isScrolled,
-                'ml-1': isScrolled,
-              })}
-            />
+            Log in <LogIn size={isScrolled ? '1rem' : '1.1rem'} className='ml-1' />
           </div>
         </WaspRouterLink>
       ) : (
@@ -115,18 +151,22 @@ function NavBarDesktopUserDropdown({ isScrolled }: { isScrolled: boolean }) {
         </div>
       )}
     </div>
-  );
+  )
 }
 
 function NavBarMobileMenu({
   isScrolled,
   navigationItems,
+  toCourses,
+  toScenic,
 }: {
-  isScrolled: boolean;
-  navigationItems: NavigationItem[];
+  isScrolled: boolean
+  navigationItems: NavigationItem[]
+  toCourses: string
+  toScenic: string
 }) {
-  const { data: user, isLoading: isUserLoading } = useAuth();
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
+  const { data: user, isLoading } = useAuth()
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false)
 
   return (
     <div className='flex lg:hidden'>
@@ -134,89 +174,90 @@ function NavBarMobileMenu({
         <SheetTrigger asChild>
           <button
             type='button'
-            className={cn(
-              'inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-muted hover:bg-accent transition-colors'
-            )}
+            className='inline-flex items-center justify-center rounded-md text-muted-foreground hover:text-muted hover:bg-accent transition-colors'
           >
             <span className='sr-only'>Open main menu</span>
-            <Menu
-              className={cn('transition-all duration-300', {
-                'size-8 p-1': !isScrolled,
-                'size-6 p-0.5': isScrolled,
-              })}
-              aria-hidden='true'
-            />
+            <Menu className={cn('transition-all duration-300', { 'size-8 p-1': !isScrolled, 'size-6 p-0.5': isScrolled })} />
           </button>
         </SheetTrigger>
         <SheetContent side='right' className='w-[300px] sm:w-[400px]'>
           <SheetHeader>
             <SheetTitle className='flex items-center'>
-              <WaspRouterLink to={routes.LandingPageRoute.to}>
+              <WaspRouterLink to={routes.Root.to}>
                 <span className='sr-only'>Your SaaS</span>
                 <NavLogo isScrolled={false} />
               </WaspRouterLink>
             </SheetTitle>
           </SheetHeader>
+
           <div className='mt-6 flow-root'>
             <div className='-my-6 divide-y divide-border'>
-              <ul className='space-y-2 py-6'>{renderNavigationItems(navigationItems, setMobileMenuOpen)}</ul>
+              {/* Quick actions */}
+              <div className='py-6 space-y-2'>
+                <ReactRouterLink
+                  to={toCourses}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className='block rounded-lg px-3 py-2 text-sm font-medium leading-7 hover:bg-accent hover:text-accent-foreground'
+                >
+                  Go to Courses
+                </ReactRouterLink>
+                <ReactRouterLink
+                  to={toScenic}
+                  onClick={() => setMobileMenuOpen(false)}
+                  className='block rounded-lg px-3 py-2 text-sm font-medium leading-7 hover:bg-accent hover:text-accent-foreground'
+                >
+                  Explore Scenic &amp; History
+                </ReactRouterLink>
+              </div>
+
+              {/* Optional legacy marketing menu */}
+              {SHOW_MARKETING_LINKS && (
+                <ul className='space-y-2 py-6'>{renderNavigationItems(navigationItems, setMobileMenuOpen)}</ul>
+              )}
+
+              {/* User + Theme */}
               <div className='py-6'>
-                {isUserLoading ? null : !user ? (
-                  <WaspRouterLink to={routes.LoginRoute.to}>
-                    <div className='flex justify-end items-center duration-300 ease-in-out text-foreground hover:text-primary transition-colors'>
-                      Log in <LogIn size='1.1rem' className='ml-1' />
-                    </div>
-                  </WaspRouterLink>
-                ) : (
+                {!isLoading && user ? (
                   <div className='space-y-2'>
                     <UserMenuItems user={user} onItemClick={() => setMobileMenuOpen(false)} />
                   </div>
-                )}
-              </div>
-              <div className='py-6'>
-                <DarkModeSwitcher />
+                ) : null}
+                <div className='mt-4'>
+                  <DarkModeSwitcher />
+                </div>
               </div>
             </div>
           </div>
         </SheetContent>
       </Sheet>
     </div>
-  );
+  )
 }
 
 function renderNavigationItems(
   navigationItems: NavigationItem[],
   setMobileMenuOpen?: Dispatch<SetStateAction<boolean>>
 ) {
-  const menuStyles = cn({
-    'block rounded-lg px-3 py-2 text-sm font-medium leading-7 text-foreground hover:bg-accent hover:text-accent-foreground transition-colors':
-      !!setMobileMenuOpen,
-    'text-sm font-normal leading-6 text-foreground duration-300 ease-in-out hover:text-primary transition-colors':
-      !setMobileMenuOpen,
-  });
-
-  return navigationItems.map((item) => {
-    return (
-      <li key={item.name}>
-        <ReactRouterLink
-          to={item.to}
-          className={menuStyles}
-          onClick={setMobileMenuOpen && (() => setMobileMenuOpen(false))}
-        >
-          {item.name}
-        </ReactRouterLink>
-      </li>
-    );
-  });
+  const cls = setMobileMenuOpen
+    ? 'block rounded-lg px-3 py-2 text-sm font-medium leading-7 hover:bg-accent hover:text-accent-foreground'
+    : 'text-sm font-normal leading-6 hover:text-primary transition-colors'
+  return navigationItems.map((item) => (
+    <li key={item.name}>
+      <ReactRouterLink
+        to={item.to}
+        className={cls}
+        onClick={setMobileMenuOpen ? () => setMobileMenuOpen(false) : undefined}
+      >
+        {item.name}
+      </ReactRouterLink>
+    </li>
+  ))
 }
 
 const NavLogo = ({ isScrolled }: { isScrolled: boolean }) => (
   <img
-    className={cn('transition-all duration-500', {
-      'size-8': !isScrolled,
-      'size-7': isScrolled,
-    })}
+    className={cn('transition-all duration-500', { 'size-8': !isScrolled, 'size-7': isScrolled })}
     src={logo}
     alt='Your SaaS App'
   />
-);
+)

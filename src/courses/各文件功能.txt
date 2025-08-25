@@ -1,0 +1,78 @@
+components/
+
+CategoryPills.tsx
+小的“药丸”筛选/分类条（比如 Basic / Travel / Professional）。纯 UI，外部给数据与 onClick。
+
+CourseCard.tsx
+单张课程卡片（显示 title/code + “Enter Course” 按钮）。被 Grid 或其它列表复用。
+
+CourseCardGrid.tsx
+课程卡区域的布局容器。props：courses: CourseLite[]、onOpen(slug)。把每个课程渲染成 CourseCard。
+
+CourseTabs.tsx
+顶部两个 Tab：Language & Culture（默认） / Scenic & History。在课程页点击 Scenic 会 navigate('/scenic')。
+
+LessonContentLoader.tsx
+课节内容动态装载器：根据 contentKey（如 basic-language/01-pronunciation）去 src/courses/content/**/index.tsx 做动态 import，渲染 default 组件；如果没找到给出兜底 UI。这个组件通常在 LessonPage.tsx 中用。
+
+LessonList.tsx
+课节列表容器（只管标题+循环列表）。把每条记录丢给 LessonListItem。
+
+LessonListItem.tsx
+单条课节行。props：order/title/summary/isFree/locked/onClick。右侧根据 isFree 显示 “Free”，locked 显示小锁。
+
+PaywallNotice.tsx
+会员提示位（不拦截）。课程列表页只是占位；详情/课节页才会真正结合 usePaywall 使用。
+
+content/
+
+basic-language/01-pronunciation/index.tsx
+课节内容组件（export default function ...）+ export const meta = { title, summary, ... }。
+与数据库 Lesson.contentKey='basic-language/01-pronunciation' 一一对应。
+
+basic-language/02-greetings/index.tsx
+同上，对应 contentKey='basic-language/02-greetings'。
+
+travel-scenes/
+预留目录（目前无课节）。
+
+loader.ts
+封装“根据 contentKey 动态 import 模块”的工具（可能被 LessonContentLoader.tsx 使用）。
+
+hooks/
+
+usePaywall.ts
+读取会员信息（getMembership），判断某课节是否免费/解锁。在预览列表我们只根据顺序标记 isFree，不做拦截；在课节页会结合它决定是否显示内容或付费提示。
+
+pages/
+
+CoursesListPage.tsx
+课程总览页（你现在做的 A 步）：
+
+顶部 CourseTabs；
+
+中间 CourseCardGrid（三门课程卡）；
+
+下方预览区域：默认拉取 basic-language 的前 6 条，前 4 条标 “Free”，用 LessonList 展示；不拦截。
+点击卡片 navigate('/courses/:slug')。
+
+CourseDetailPage.tsx
+课程详情页（B 步要做）：显示该课程的完整课节列表，并在右侧或顶部放课程简介等。
+
+LessonPage.tsx
+课节详情页（C 步要做）：拿 courseSlug/lessonSlug，从后端拿 contentKey，再用 LessonContentLoader 动态加载内容；结合 usePaywall 控制是否展示或只显示 PaywallNotice。
+
+其它
+
+operations.ts（服务端）
+
+getCourses()：返回课程列表（id/title/slug/code/category）。
+
+getCourseWithLessons({ courseSlug })：返回指定课程 + 其 lessons（id/title/slug/order/contentKey，按 order 升序）。
+
+getLessonBySlug({ courseSlug, lessonSlug })：课节详情（带 contentKey）。
+
+markLessonDone：进度打点。
+
+types.ts
+共用类型（CourseLite / LessonLite / LessonMeta / LessonContentModule 等）。

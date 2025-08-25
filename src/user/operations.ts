@@ -124,3 +124,18 @@ export const getPaginatedUsers: GetPaginatedUsers<GetPaginatedUsersInput, GetPag
     totalPages,
   };
 };
+
+import type { User as IUser } from 'wasp/entities';
+
+export const getMe = async (_args: unknown, context: { user?: IUser | null }) =>
+  context.user ? { id: context.user.id, email: context.user.email, isAdmin: context.user.isAdmin } : null;
+
+export const getMembership = async (_args: unknown, context: { user?: IUser | null }) => {
+  if (!context.user) return null;
+  const u = context.user;
+  return {
+    subscriptionStatus: u.subscriptionStatus,
+    subscriptionPlan: u.subscriptionPlan,
+    subscriptionCurrentPeriodEnd: u.subscriptionCurrentPeriodEnd,
+  };
+};

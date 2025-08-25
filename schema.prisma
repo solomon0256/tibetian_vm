@@ -26,6 +26,13 @@ model User {
   contactFormMessages       ContactFormMessage[]
   tasks                     Task[]
   files                     File[]
+  
+    // 新增：会员当前周期结束时间（到期时间）
+  subscriptionCurrentPeriodEnd DateTime?
+
+  // 新增：学习进度关系
+  progresses                  Progress[]
+
 }
 
 model GptResponse {
@@ -99,6 +106,37 @@ model Logs {
   level                    String
 }
 
+enum LessonKind {
+  READING
+  VIDEO
+  QUIZ
+  SURVEY
+}
+
+model Course {
+  id        String   @id @default(uuid())
+  title     String
+  slug      String   @unique           // 用于 /courses/:courseSlug
+  summary   String?
+  lessons   Lesson[]
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Lesson {
+  id        String     @id @default(uuid())
+  courseId  String
+  course    Course     @relation(fields: [courseId], references: [id], onDelete: Cascade)
+  title     String
+  slug      String     @unique          // 用于 /courses/:courseSlug/lessons/:lessonSlug
+  order     Int
+  kind      LessonKind @default(READING)
+  contentKey String                     // 用于加载具体内容 / 对应你的 Progress.contentKey
+  isFree    Boolean    @default(false)  // 前 4 节可设 true
+  createdAt DateTime   @default(now())
+  updatedAt DateTime   @updatedAt
+}
+
 model ContactFormMessage {
   id                        String          @id @default(uuid())
   createdAt                 DateTime        @default(now())
@@ -109,4 +147,28 @@ model ContactFormMessage {
   content                   String
   isRead                    Boolean         @default(false)
   repliedAt                 DateTime?
+}
+
+enum ProgressStatus {
+  started
+  in_progress
+  completed
+}
+
+model Progress {
+  id          String         @id @default(uuid())
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  user        User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  userId      String
+
+  // 你自定义的内容键，如 "unit1/lesson2" 或 "page:/letters/alphabet"
+  contentKey  String
+  status      ProgressStatus @default(started)
+  score       Int?
+  notes       String?
+
+  @@unique([userId, contentKey])
+  @@index([contentKey])
 }
