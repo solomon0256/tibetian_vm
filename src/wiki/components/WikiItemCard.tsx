@@ -10,17 +10,20 @@ type Props = {
 
 export default function WikiItemCard({ title, summary, coverImage, onOpen }: Props) {
   return (
-    <div className="rounded-xl border overflow-hidden flex flex-col">
-      {coverImage ? <img src={coverImage} alt="" className="aspect-video object-cover" /> : null}
-      <div className="p-3">
-        <div className="font-medium">{title}</div>
-        {summary ? <div className="text-sm text-muted-foreground line-clamp-2">{summary}</div> : null}
-        <div className="mt-3">
-          <button onClick={onOpen} className="rounded-md border px-3 py-1 text-sm hover:bg-accent">
-            Open
-          </button>
+    <button
+      onClick={onOpen}
+      className="w-full rounded-xl border text-left hover:bg-accent transition focus:outline-none focus:ring-2 focus:ring-offset-2 p-3"
+      aria-label={`Open ${title}`}
+    >
+      {coverImage ? (
+        <img src={coverImage} alt="" className="mb-3 aspect-video object-cover rounded-lg" />
+      ) : null}
+      <div className="font-medium">{title}</div>
+      {summary ? (
+        <div className="text-sm text-muted-foreground line-clamp-1 mt-1">
+          {summary}
         </div>
-      </div>
-    </div>
+      ) : null}
+    </button>
   )
 }
