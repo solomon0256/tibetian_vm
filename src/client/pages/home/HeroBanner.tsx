@@ -1,16 +1,12 @@
+// src/client/pages/home/HeroBanner.tsx
 import React from 'react'
 import { useAuth } from 'wasp/client/auth'
-import { Link } from 'react-router-dom'
 import SectionTitle from '../../../landing-page/components/SectionTitle'
+import MountainImageButton from './MountainButton'
 
-/**
- * Hero banner with big promo image(s).
- * 先用静态第一张图；后续可把 slides 扩展为轮播。
- * 图片放在 public/media/home/hero/* 下即可。
- */
 const slides = [
   {
-    src: '/media/home/hero/slide-01.webp',
+    src: '/media/home/hero/slide-01.webp', // public 下
     title: 'Start Learning Tibetan',
     subtitle: 'Language • Culture • Travel Guide',
     primaryHref: '/courses',
@@ -20,47 +16,57 @@ const slides = [
 export default function HeroBanner() {
   const { data: user } = useAuth()
   const s = slides[0]
+  const PUB = '/media/home/mountain' // 统一前缀
 
   return (
     <section className="relative">
-      {/* 大图 */}
-      <div className="relative aspect-[16/6] w-full overflow-hidden bg-gray-100">
+      {/* 大图：固定视窗高度，显示更多下缘 */}
+      <div className="relative w-full overflow-hidden bg-gray-100 h-[62vh] md:h-[68vh] lg:h-[72vh] min-h-[460px]">
         <img
           src={s.src}
           alt="Hero"
-          className="h-full w-full object-cover"
+          className="h-full w-full object-cover object-[center_55%]"
           loading="eager"
           decoding="async"
         />
-        {/* 文案覆盖 */}
-        <div className="absolute inset-0 bg-black/30"></div>
-        <div className="absolute inset-0 flex items-center">
+
+        {/* 暗层提升可读性 */}
+        <div className="absolute inset-0 z-10 bg-black/30" />
+
+        {/* 下边缘渐隐到页面背景色 */}
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-24 sm:h-28 md:h-36 lg:h-40 bg-gradient-to-b from-transparent to-background" />
+
+        {/* 左侧标题文案 */}
+        <div className="absolute inset-0 z-30 flex items-center">
           <div className="container mx-auto px-6">
             <div className="max-w-2xl text-white">
-              <SectionTitle
-                title={s.title}
-                description={s.subtitle}
-              />
-              <div className="mt-6 flex flex-wrap gap-3">
-                <Link
-                  to={user ? '/courses' : '/login'}
-                  className="inline-flex items-center rounded-md bg-white text-black px-4 py-2 font-medium hover:bg-gray-100"
-                >
-                  {user ? 'Go to Courses' : 'Start now'}
-                </Link>
-                <Link
-                  to="/scenic"
-                  className="inline-flex items-center rounded-md border border-white/80 text-white px-4 py-2 font-medium hover:bg-white/10"
-                >
-                  Explore Scenic & History
-                </Link>
-              </div>
+              <SectionTitle title={s.title} description={s.subtitle} />
             </div>
+          </div>
+        </div>
+
+        {/* 底部中部：两座雪山图片按钮（更长更高，间距更近） */}
+        <div className="absolute inset-x-0 bottom-3 md:bottom-5 z-40 flex justify-center">
+          <div className="flex items-end gap-4">
+            <MountainImageButton
+              to={user ? '/courses' : '/login'}
+              label={user ? 'Go to Courses' : 'Start now'}
+              imgSrc={`${PUB}/meili.png`}
+              imgAlt="Meili Snow Mountain"
+              size="xl"
+            />
+            <MountainImageButton
+              to="/scenic"
+              label="Explore Scenic & History"
+              imgSrc={`${PUB}/kailash.png`}
+              imgAlt="Mount Kailash"
+              size="xl"
+            />
           </div>
         </div>
       </div>
 
-      {/* 三角“山”位置：占位（后续可替换为 SVG/装饰图） */}
+      {/* 占位 */}
       <div className="container mx-auto px-6">
         <div className="mt-6 h-8" />
       </div>
